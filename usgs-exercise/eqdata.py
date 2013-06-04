@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 from datetime import datetime
+import csv
 import math
+import os
+import sys
 import time
 
 def main():
@@ -21,24 +24,24 @@ Select an option: """)
     elif get_option == "1":
       print "Top 100 Magnitude Earthquakes (date, magnitude, depth)"
       for x in sort("magnitude", count=100):
-        print "%s %.2f %d" % (x["date"], x["magnitude"], x["depth"])
+        print "%s\t%.2f\t%d" % (x["date"], x["magnitude"], x["depth"])
     elif get_option == "2":
       print "Top 50 Shallowest Earthquakes (date, magnitude, depth)"
       for x in sort("depth", count=50, asc=True):
-        print "%s %.2f %d" % (x["date"], x["magnitude"], x["depth"])
+        print "%s\t%.2f\t%d" % (x["date"], x["magnitude"], x["depth"])
     elif get_option == "3":
       print "Top 50 Earthquakes closest to Cheney, WA (date, coordinates, distance from Cheney)"
       for x in sort("distance_from_cheney", count=50, asc=True):
-        print "%s %s %.2f" % (x["date"], str(x["coordinates"]), x["distance_from_cheney"])
+        print "%s\t%s\t%.2f" % (x["date"], str(x["coordinates"]), x["distance_from_cheney"])
     elif get_option == "4":
       print """
       mean: %.2f
     median: %.2f
   std. dev: %.2f""" % statistics(all_magnitudes)
     elif get_option == "5":
-      print "Top 50 Earthquakes by Impact (date, magnitude, depth, impact"
+      print "Top 50 Earthquakes by Impact (date, magnitude, depth, impact)"
       for x in sort("impact", count=50):
-        print "%s %.2f %d %.2f" % (x["date"], x["magnitude"], x["depth"], x["impact"])
+        print "%s\t%.2f\t%d\t%.2f" % (x["date"], x["magnitude"], x["depth"], x["impact"])
 
 def to_record(s, all_magnitudes):
 
@@ -68,15 +71,14 @@ def to_record(s, all_magnitudes):
   def deg2rad(deg):
     return deg * (math.pi/180)
 
-  s = s.strip().split(",")
-  if len(s) != 9:
+  if len(s) != 10:
     return None
 
   x1, y1 = (47.4875, 117.5747)
   x2, y2 = (float(s[4]), float(s[5]))
 
-  depth = int(s[7]) if len(s[7]) > 0 else 0
-  magnitude = float(s[6])
+  depth = int(s[8]) if len(s[8]) > 0 else 0
+  magnitude = float(s[7])
   all_magnitudes.append(magnitude)
 
   impact = max(0, (1000 - depth) * magnitude)
@@ -86,7 +88,7 @@ def to_record(s, all_magnitudes):
     "coordinates" : (x2, y2),
     "magnitude" : magnitude,
     "depth" : depth,
-    "source" : s[8],
+    "source" : s[9],
     "distance_from_cheney" : getDistanceFromLatLonInKm(x1, x2, y1, y2),
     "impact" : impact
   }
@@ -122,15 +124,21 @@ def statistics(elements):
 
 data = []
 all_magnitudes = []
+# source: https://www.google.com/fusiontables/DataSource?snapid=S327323orMC
 with open("eqdata.csv", "r") as f:
+  sys.stdout.write("Loading file")
   f.readline() # skip headers
-  for index, line in enumerate(f):
-    #for testing
+  for index, line in enumerate(csv.reader(f)):
+    # for testing
     # if index > 100:
     #   break
+    if index % 2500 == 0:
+      sys.stdout.write(".")
+      sys.stdout.flush()
     record = to_record(line, all_magnitudes)
     if record:
       data.append(record)
+  os.system('cls' if os.name == 'nt' else 'clear')
 
 if __name__ == '__main__':
     main()
